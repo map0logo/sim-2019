@@ -1,0 +1,360 @@
+# Simulación y Riesgo
+
+Con frecuencia se requiere incorporarla aleatoriedad de forma explícita en los modelos predictivos. Esto se realiza esspecificando distribuciones de probabilidad para las variables de entrada no controlables.
+
+Los modelos con estos elementos se denominan *estocásticos*  o *probabilísticos* y pueden  ayudar a  evaluar los riessgos asociados a consecuencias incontrolables, y permiten encontrar soluciones óptimas bajo incertidumbre.
+
+> **Riesgo** es la probabilidad de que ocurra un resultado no deseado, y puede ser evaluado a  partir de su probabilidad y la gravedad del resultado.
+
+> **El análisis de riesgo** consiste en el desarrollo de una comprensión y una conciencia completas del riesgo asociado con una variable de interés particular.
+
+## Modelo de decisión de tercerización
+
+Se quiere decidir que es más conveniente, si fabricar un artículo, o adquirirlo hecho. Debido al costo fijo, si la demanda es pequeña vale más la pena comprar los productos de un proveedor, a medida que aumenta la demanda llega un punto en que es más conveniente fabricar los productos. Se asume que el volumen de producción es incierto, y que la demanda es una variable aleatoria con distribución de probabilidad normal con $\mu = 1000$ y $\sigma = 10$. 
+
+### Simulación Puntual
+
+Vamos a realizar una simulación para un único valor (aleatorio) de la demanda.
+
+
+```python
+import random
+
+costo_fijo = 50000
+costo_variable = 125
+volumen_produccion = random.normalvariate(mu=1000, sigma=100)
+
+costo_manufactura = costo_fijo + costo_variable * volumen_produccion
+print(f"Costo Manufactura = {costo_manufactura:.2f}")
+```
+
+    Costo Manufactura = 195041.72
+
+
+
+```python
+costo_proveedor = 175
+costo_compra = costo_proveedor * volumen_produccion
+print(f"Costo Compra = {costo_compra:.2f}")
+```
+
+    Costo Compra = 203058.41
+
+
+
+```python
+diferencia_costo = costo_manufactura - costo_compra
+print('Comprar' if diferencia_costo > 0 else 'Fabricar')
+```
+
+    Fabricar
+
+
+El punto de equilibrio, es decir, la producción para la que el costo de manufactura y el costo de compra se igualen, sería:
+
+\begin{equation*}
+K + c_v \times p = c_p \times p \\
+p = \frac{K}{c_p - c_v}
+\end{equation*}
+
+
+
+```python
+equilibrio = costo_fijo / (costo_proveedor - costo_variable)
+print(f"Punto de Equilibrio = {equilibrio:.2f}")
+```
+
+    Punto de Equilibrio = 1000.00
+
+
+Como buen ejemplo de libro, el punto de equilibrio coincide con la media de la demanda.
+
+### Generar una tabla de datos con la simulación
+
+En el caso anterior, obtuvimos el valor para un caso particular. Pero, necesitamos realizar un número de intentos significativos para poder analizar estadísticamente este modelo. Con esta finalidad generamos un conjunto de valores aleatorios de la demanda, y a partir de esta se construye una tabla que nos muestre los resultados de la simulación.
+
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+
+```python
+demanda = np.random.normal(loc=1000, scale=100, size=20)
+demanda
+```
+
+
+
+
+    array([1028.38624878,  831.05960971,  999.88696172, 1028.65595162,
+           1038.14048292,  984.15659527,  981.01701455, 1001.38730974,
+           1103.19115692,  936.09733487,  951.12325441, 1045.4618419 ,
+           1130.66557382,  951.36180987,  846.61063894,  880.40833063,
+            958.74859033,  943.10191982, 1022.58221132,  837.50537013])
+
+
+
+
+```python
+dif_costo = costo_fijo + (costo_variable - costo_proveedor) * demanda
+dif_costo
+```
+
+
+
+
+    array([-1.41931244e+03,  8.44701951e+03,  5.65191413e+00, -1.43279758e+03,
+           -1.90702415e+03,  7.92170237e+02,  9.49149273e+02, -6.93654872e+01,
+           -5.15955785e+03,  3.19513326e+03,  2.44383728e+03, -2.27309210e+03,
+           -6.53327869e+03,  2.43190951e+03,  7.66946805e+03,  5.97958347e+03,
+            2.06257048e+03,  2.84490401e+03, -1.12911057e+03,  8.12473149e+03])
+
+
+
+
+```python
+decision = np.where(dif_costo > 0, 'Comprar', 'Fabricar')
+decision
+```
+
+
+
+
+    array(['Fabricar', 'Comprar', 'Comprar', 'Fabricar', 'Fabricar',
+           'Comprar', 'Comprar', 'Fabricar', 'Fabricar', 'Comprar', 'Comprar',
+           'Fabricar', 'Fabricar', 'Comprar', 'Comprar', 'Comprar', 'Comprar',
+           'Comprar', 'Fabricar', 'Comprar'], dtype='<U8')
+
+
+
+
+```python
+tabla = pd.DataFrame({'demanda': demanda, 'diferencia': dif_costo, 'decision': decision})
+tabla
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>demanda</th>
+      <th>diferencia</th>
+      <th>decision</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>1028.386249</td>
+      <td>-1419.312439</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>831.059610</td>
+      <td>8447.019514</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>999.886962</td>
+      <td>5.651914</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>1028.655952</td>
+      <td>-1432.797581</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>1038.140483</td>
+      <td>-1907.024146</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>984.156595</td>
+      <td>792.170237</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>981.017015</td>
+      <td>949.149273</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>1001.387310</td>
+      <td>-69.365487</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>1103.191157</td>
+      <td>-5159.557846</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td>936.097335</td>
+      <td>3195.133256</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>951.123254</td>
+      <td>2443.837280</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>1045.461842</td>
+      <td>-2273.092095</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td>1130.665574</td>
+      <td>-6533.278691</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>13</td>
+      <td>951.361810</td>
+      <td>2431.909507</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>14</td>
+      <td>846.610639</td>
+      <td>7669.468053</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>15</td>
+      <td>880.408331</td>
+      <td>5979.583468</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>16</td>
+      <td>958.748590</td>
+      <td>2062.570484</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>17</td>
+      <td>943.101920</td>
+      <td>2844.904009</td>
+      <td>Comprar</td>
+    </tr>
+    <tr>
+      <td>18</td>
+      <td>1022.582211</td>
+      <td>-1129.110566</td>
+      <td>Fabricar</td>
+    </tr>
+    <tr>
+      <td>19</td>
+      <td>837.505370</td>
+      <td>8124.731494</td>
+      <td>Comprar</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+tabla.diferencia.hist()
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x7fa4b9aa97b8>
+
+
+
+
+![png](output_13_1.png)
+
+
+La gran ventaja de utilizar un DataFrame en lugar de una hoja de cálculo es que podemos realizar sin problema simulaciones para un gran número de intentos. Incluso varias simulaciones.
+
+
+```python
+demanda = np.random.normal(loc=1000, scale=100, size=20000)
+dif_costo = costo_fijo + (costo_variable - costo_proveedor) * demanda
+decision = np.where(dif_costo > 0, 'Comprar', 'Fabricar')
+tabla = pd.DataFrame({'demanda': demanda, 'diferencia': dif_costo, 'decision': decision})
+tabla.diferencia.hist(bins=25, grid=False, figsize=(8,6), color='#86bf91', zorder=2, rwidth=0.9)
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x7fa4b787ad68>
+
+
+
+
+![png](output_15_1.png)
+
+
+Como era de esperarse, como la diferencia es normal ya que se obtiene de una combinación lineal de la demanda que es normal.
+
+
+```python
+tabla.decision.value_counts()
+```
+
+
+
+
+    Fabricar    10089
+    Comprar      9911
+    Name: decision, dtype: int64
+
+
+
+
+```python
+tabla.decision.value_counts().plot(kind='bar')
+```
+
+
+
+
+    <matplotlib.axes._subplots.AxesSubplot at 0x7fa4b7790e80>
+
+
+
+
+![png](output_18_1.png)
+
